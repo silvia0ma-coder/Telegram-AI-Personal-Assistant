@@ -1,0 +1,49 @@
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local secrets and credentials
+secrets/
+credentials/
+private/
+*.secret
+*.secrets
+
+# Unredacted workflow exports
+*-RAW.json
+*-raw.json
+*UNSANITIZED*.json
+*unsanitized*.json
+
+# Local n8n data and execution exports
+execution-data/
+n8n-data/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors and IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python cache files
+__pycache__/
+*.py[cod]
