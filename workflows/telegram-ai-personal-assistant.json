@@ -9,7 +9,7 @@
         "additionalFields": {}
       },
       "id": "212b11c7-209c-47c8-8b7e-2b283154c4ba",
-      "name": "Telegram Trigger1",
+      "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
       "position": [
@@ -77,7 +77,7 @@
         }
       },
       "id": "87674139-3943-4e5a-a656-df656a7f6271",
-      "name": "Switch1",
+      "name": "Route Message Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
@@ -112,7 +112,7 @@
         "options": {}
       },
       "id": "4457d0c5-1d41-4cd4-b7c8-12cad5d2ebd0",
-      "name": "Edit Fields1",
+      "name": "Set Agent Input",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
@@ -129,7 +129,7 @@
         }
       },
       "id": "ac03a0ce-b73b-4cfd-a3fa-e77d436e517f",
-      "name": "AI Agent1",
+      "name": "Personal Assistant Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
@@ -148,7 +148,7 @@
         "contextWindowLength": 4
       },
       "id": "c7c509c6-5841-49ff-8095-3f2011c0a15a",
-      "name": "Window Buffer Memory1",
+      "name": "Chat Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
@@ -373,7 +373,7 @@
           "conditions": [
             {
               "id": "b69abfe2-b35c-4bbb-bf11-2c932617097c",
-              "leftValue": "={{ $('Telegram Trigger1').item.json.message.voice.file_id }}",
+              "leftValue": "={{ $('Telegram Trigger').item.json.message.voice.file_id }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -398,7 +398,7 @@
     {
       "parameters": {
         "operation": "sendAudio",
-        "chatId": "={{ $('Switch1').item.json.message.chat.id }}",
+        "chatId": "={{ $('Route Message Type').item.json.message.chat.id }}",
         "binaryData": true,
         "additionalFields": {}
       },
@@ -413,14 +413,14 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('Switch1').item.json.message.chat.id }}",
+        "chatId": "={{ $('Route Message Type').item.json.message.chat.id }}",
         "text": "={{ $json.output }}",
         "additionalFields": {
           "appendAttribution": false
         }
       },
       "id": "b67360b7-6bf3-4f53-be34-642d0e3b7116",
-      "name": "Telegram4",
+      "name": "Send Text Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
@@ -435,7 +435,7 @@
         "additionalFields": {}
       },
       "id": "58ae358d-0fd8-41e2-9121-baf7e8cbccdd",
-      "name": "Telegram3",
+      "name": "Download Voice File",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
@@ -508,7 +508,7 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('Switch1').item.json.message.chat.id }}",
+        "chatId": "={{ $('Route Message Type').item.json.message.chat.id }}",
         "text": "Sorry, something went wrong while handling that. Please try again.",
         "additionalFields": {
           "appendAttribution": false
@@ -536,7 +536,7 @@
           "conditions": [
             {
               "keyName": "chat_id",
-              "keyValue": "={{ String($('Telegram Trigger1').item.json.message.chat.id) }}"
+              "keyValue": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}"
             },
             {
               "keyName": "status",
@@ -590,7 +590,7 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('Telegram Trigger1').item.json.message.chat.id }}",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
         "text": "This assistant is private. You are not authorized to use it.",
         "additionalFields": {
           "appendAttribution": false
@@ -608,7 +608,7 @@
     {
       "parameters": {
         "operation": "sendAndWait",
-        "chatId": "={{ $('Telegram Trigger1').item.json.message.chat.id }}",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
         "message": "={{ $fromAI('approval_message', 'Describe the exact action requiring approval.', 'string') }}",
         "approvalOptions": {
           "values": {
@@ -616,7 +616,7 @@
           }
         },
         "chatApproval": true,
-        "approverIds": "={{ $('Telegram Trigger1').item.json.message.from.id }}",
+        "approverIds": "={{ $('Telegram Trigger').item.json.message.from.id }}",
         "postDecisionBehavior": "removeButtons",
         "options": {
           "limitWaitTime": {
@@ -644,13 +644,13 @@
             {
               "id": "restore-message-001",
               "name": "message",
-              "value": "={{ $('Telegram Trigger1').item.json.message }}",
+              "value": "={{ $('Telegram Trigger').item.json.message }}",
               "type": "object"
             },
             {
               "id": "restore-update-001",
               "name": "update_id",
-              "value": "={{ $('Telegram Trigger1').item.json.update_id }}",
+              "value": "={{ $('Telegram Trigger').item.json.update_id }}",
               "type": "number"
             }
           ]
@@ -734,18 +734,18 @@
     }
   ],
   "connections": {
-    "Switch1": {
+    "Route Message Type": {
       "main": [
         [
           {
-            "node": "Edit Fields1",
+            "node": "Set Agent Input",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Telegram3",
+            "node": "Download Voice File",
             "type": "main",
             "index": 0
           }
@@ -759,18 +759,18 @@
         ]
       ]
     },
-    "Edit Fields1": {
+    "Set Agent Input": {
       "main": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Agent1": {
+    "Personal Assistant Agent": {
       "main": [
         [
           {
@@ -788,11 +788,11 @@
         ]
       ]
     },
-    "Window Buffer Memory1": {
+    "Chat Memory": {
       "ai_memory": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "ai_memory",
             "index": 0
           }
@@ -803,7 +803,7 @@
       "ai_tool": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -814,7 +814,7 @@
       "ai_tool": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -825,7 +825,7 @@
       "ai_tool": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -836,7 +836,7 @@
       "ai_tool": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -854,7 +854,7 @@
         ],
         [
           {
-            "node": "Telegram4",
+            "node": "Send Text Reply",
             "type": "main",
             "index": 0
           }
@@ -865,14 +865,14 @@
       "ai_tool": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "ai_tool",
             "index": 0
           }
         ]
       ]
     },
-    "Telegram Trigger1": {
+    "Telegram Trigger": {
       "main": [
         [
           {
@@ -916,7 +916,7 @@
       "ai_tool": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -927,7 +927,7 @@
       "main": [
         [
           {
-            "node": "Switch1",
+            "node": "Route Message Type",
             "type": "main",
             "index": 0
           }
@@ -945,7 +945,7 @@
         ]
       ]
     },
-    "Telegram3": {
+    "Download Voice File": {
       "main": [
         [
           {
@@ -960,7 +960,7 @@
       "main": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "main",
             "index": 0
           }
@@ -971,7 +971,7 @@
       "ai_languageModel": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Personal Assistant Agent",
             "type": "ai_languageModel",
             "index": 0
           }

@@ -30,7 +30,8 @@
       "position": [
         736,
         192
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {},
@@ -79,6 +80,29 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f5de57c9-086b-4c56-ad78-95adeaee246f",
+              "name": "output",
+              "value": "={{ 'Research task failed: ' + ($json.error || 'unknown error') + '. Please try again.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        384
+      ],
+      "id": "677446c3-d7bb-485e-8b9c-fae6f8727eea",
+      "name": "Research Error Reply"
     }
   ],
   "pinData": {},
@@ -122,6 +146,18 @@
           {
             "node": "AI Agent",
             "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Research Error Reply",
+            "type": "main",
             "index": 0
           }
         ]

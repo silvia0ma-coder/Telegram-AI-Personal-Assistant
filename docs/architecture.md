@@ -18,28 +18,28 @@ flowchart TD
     Auth --> IsAuth{Authorized?}
     IsAuth -- no --> Unauth[Unauthorized reply]
     IsAuth -- yes --> Restore[Restore Telegram Message]
-    Restore --> Route{Message type}
+    Restore --> Route{"Route Message Type"}
 
-    Route -- text --> Fields[Edit Fields]
-    Route -- voice --> Download[Download voice file]
+    Route -- text --> Fields[Set Agent Input]
+    Route -- voice --> Download[Download Voice File]
     Route -- other --> Unsupported[Unsupported-type reply]
     Download --> STT[ElevenLabs Speech to Text]
 
-    Fields --> Agent[AI Agent]
+    Fields --> Agent[Personal Assistant Agent]
     STT --> Agent
 
     Agent -- error --> ErrorReply[Error reply]
     Agent --> IsVoice{Voice message?}
     IsVoice -- yes --> TTS[ElevenLabs Text to Speech]
     TTS --> VoiceReply[Send voice reply]
-    IsVoice -- no --> TextReply[Send text reply]
+    IsVoice -- no --> TextReply[Send Text Reply]
 ```
 
 Key points:
 
 1. **Authorization first.** Every message is checked against a Data Table of `chat_id` values with `status = active`. Anyone else gets a refusal and nothing else runs.
 2. **Text, voice, or unsupported.** Text goes straight to the agent. Voice messages are downloaded and transcribed with ElevenLabs first. Anything else (photos, stickers, and so on) gets a short "only text and voice" reply.
-3. **One agent, many tools.** The AI Agent has a 4-message window memory keyed by Telegram chat ID, the five sub-workflow tools, and the Telegram Approval Gate.
+3. **One agent, many tools.** The Personal Assistant Agent has a 4-message window memory keyed by Telegram chat ID, the five sub-workflow tools, and the Telegram Approval Gate.
 4. **Reply in the same format.** Voice requests are answered with a voice message; text requests with text.
 5. **Errors.** If the agent fails, the user receives "Sorry, something went wrong while handling that. Please try again."
 
@@ -47,7 +47,7 @@ Key points:
 
 ```mermaid
 flowchart LR
-    Agent[AI Agent]
+    Agent[Personal Assistant Agent]
     Agent <--> Email[Gmail_Tool<br/>Email Management]
     Agent <--> Calendar[Calendar_Tool<br/>Calendar Management]
     Agent <--> Research[search_agent<br/>Research Agent]
@@ -79,7 +79,7 @@ The agent is instructed to call the Approval Gate with the exact action, wait fo
 ```mermaid
 sequenceDiagram
     participant U as User (Telegram)
-    participant A as AI Agent
+    participant A as Personal Assistant Agent
     participant G as Approval Gate
     participant S as Email sub-workflow
 
@@ -104,7 +104,7 @@ The Email sub-workflow adds a second layer: its agent only calls `sendEmail` or 
 |---|---|---|
 | Email Management | `query` text | AI agent with 10 Gmail tools |
 | Calendar Management | `query` text | AI agent with 6 Google Calendar tools |
-| Research Agent | `query` text | AI agent with Wikipedia and Hacker News tools. No error output is wired. |
+| Research Agent | `query` text | AI agent with Wikipedia and Hacker News tools; failures return a plain-language error message |
 | Contact Agent | `action`, `name`, `email`, `phone` | No AI. An IF node routes `add` to an append-or-update on the sheet; anything else reads the sheet and a Code node filters the matching rows. |
 | X Posts Agent | `query` text | AI agent with a `savePost` Google Sheets tool; success and error response nodes |
 
@@ -112,9 +112,9 @@ Each sub-workflow starts with an *Execute Workflow Trigger*, so it can only be c
 
 ## 6. Error handling
 
-- The main AI agent, and the Email, Calendar, and X Posts agents, have an error output that produces a plain-language failure message.
+- The main agent and the Email, Calendar, Research, and X Posts agents each have an error output that produces a plain-language failure message.
 - The calendar agent is also instructed never to report success unless the tool response confirms it.
-- The Research agent has no error output, and the Contact Agent has no explicit error handling beyond a "no matching contact" result.
+- The Contact Agent has no AI agent, so it has no error output beyond a "no matching contact" result.
 - There is no shared error-handler workflow in this repository.
 
 ## 7. Security model
