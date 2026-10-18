@@ -12,14 +12,15 @@ Instead of manually switching between multiple applications, a user can send a r
 
 ### Key Features
 
-- **Telegram Interface:** Provides the primary user interaction channel for text requests and supported voice-message handling.
-- **AI-Powered Coordination:** The main assistant interprets requests using the AI components configured in the workflow.
-- **Email Management:** Handles email-related requests through the configured email integration.
-- **Calendar Management:** Handles calendar-related tasks through the configured calendar integration.
-- **Research:** Supports research requests using the sources configured in the workflow.
-- **Contact Management:** Uses Google Sheets for configured contact-related operations.
-- **X (Twitter) Posts:** Supports X-post-related operations using the configured Google Sheets integration.
-- **Modular Architecture:** Separates responsibilities into sub-workflows to make maintenance and troubleshooting easier.
+- **Telegram interface:** Text and voice messages. Voice is transcribed with ElevenLabs, and voice requests get a spoken reply.
+- **Private by design:** Only Telegram chats on an allow-list (an n8n Data Table) can use the bot.
+- **Human approval:** Sending email, changing the calendar, and saving contacts require an **Approve** tap in Telegram first.
+- **Email management (Gmail):** Search, summarize, prioritize, draft, send, reply, label, and mark read or unread.
+- **Calendar management (Google Calendar):** View events, check availability, and create, update, or delete events.
+- **Research:** Answers questions using Wikipedia and Hacker News.
+- **Contacts (Google Sheets):** Look up and save contacts.
+- **X (Twitter) post drafts (Google Sheets):** Writes post drafts and saves them to a sheet. It does not publish to X.
+- **Modular architecture:** A main coordinating agent plus five sub-workflows that can be tested and maintained separately.
 
 ## Workflow Structure
 
@@ -38,26 +39,24 @@ The project consists of six n8n workflows:
 
 The general request flow is:
 
-1. The user sends a request through Telegram.
-2. The main workflow receives and processes the request.
-3. The assistant determines which task workflow should handle the request.
-4. The relevant sub-workflow executes its configured operations.
-5. The result is returned to the main workflow.
-6. The assistant sends a response through Telegram.
-
-Voice-message functionality depends on the transcription and message-processing nodes configured in the current workflow version.
+1. The user sends a text or voice message through Telegram.
+2. The main workflow checks that the chat is on the allow-list. Anyone else is refused.
+3. Voice messages are transcribed; unsupported message types get a short reply.
+4. A single AI agent decides which tools it needs and calls the matching sub-workflows (email, calendar, research, contacts, X drafts).
+5. For consequential actions, the agent asks for approval in Telegram first.
+6. The assistant replies in Telegram, with a voice message if the request was a voice message.
 
 ## Technology Stack
 
-- **n8n:** Workflow automation and orchestration.
+- **n8n:** Workflow automation and orchestration (including Data Tables).
 - **Telegram:** User-facing messaging interface.
-- **AI model integration:** Request interpretation and assistant reasoning.
-- **Email integration:** Email-related operations.
-- **Calendar integration:** Calendar-related operations.
-- **Google Sheets:** Configured contact and X-post data operations.
-- **Research sources:** The information sources configured in the Research workflow.
+- **Google Gemini:** The AI model behind every agent.
+- **ElevenLabs:** Speech-to-text and text-to-speech for voice messages.
+- **Gmail and Google Calendar:** Email and calendar operations.
+- **Google Sheets:** Contact and X-post draft storage.
+- **Wikipedia and Hacker News:** Research sources.
 
-The exact providers and capabilities depend on the credentials and nodes configured in the imported workflows.
+See [docs/architecture.md](docs/architecture.md) for diagrams and details.
 
 ## Repository Structure
 
@@ -69,12 +68,13 @@ Telegram-AI-Personal-Assistant/
 ├── docs/
 │   ├── setup.md
 │   └── architecture.md
-├── Telegram-AI-Personal-Assistant-Json.json      (main workflow)
-├── Email-Management-Sub-Workflow-Json.json
-├── Calendar_Management_Agent_Json.json
-├── Research_Agent_Json.json
-├── Contact_Agent_Sub_workflow_Json.json
-└── X_Posts_Agent_Sub_Workflow_Json.json
+└── workflows/
+    ├── telegram-ai-personal-assistant.json      (main workflow)
+    ├── email-management-sub-workflow.json
+    ├── calendar-management-sub-workflow.json
+    ├── research-agent-sub-workflow.json
+    ├── contact-agent-sub-workflow.json
+    └── x-posts-agent-sub-workflow.json
 ```
 
 ## Getting Started
@@ -89,7 +89,7 @@ Telegram-AI-Personal-Assistant/
 
 ## Important Notes
 
-The workflow JSON files are exports, not a guarantee of a ready-to-run installation. Credentials, resource IDs, and workflow references may need to be configured for your own n8n instance.
+The files in [`workflows/`](workflows/) are sanitized exports, not a guarantee of a ready-to-run installation. Credentials, resource IDs, and workflow references may need to be configured for your own n8n instance.
 
 Uploading workflow files to GitHub does not automatically update the workflows running in n8n.
 

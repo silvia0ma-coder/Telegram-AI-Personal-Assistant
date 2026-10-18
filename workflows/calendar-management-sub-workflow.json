@@ -1,5 +1,5 @@
 {
-  "name": "Calender Management Agent Sub - Workflow",
+  "name": "Calendar Management Agent Sub - Workflow",
   "nodes": [
     {
       "parameters": {
@@ -24,7 +24,7 @@
         }
       },
       "id": "5c2ace58-b397-409f-8e92-cea09e560b61",
-      "name": "Calender Agent",
+      "name": "Calendar Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.6,
       "position": [
@@ -247,14 +247,14 @@
       "main": [
         [
           {
-            "node": "Calender Agent",
+            "node": "Calendar Agent",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Calender Agent": {
+    "Calendar Agent": {
       "main": [
         [
           {
@@ -276,7 +276,7 @@
       "ai_languageModel": [
         [
           {
-            "node": "Calender Agent",
+            "node": "Calendar Agent",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -287,7 +287,7 @@
       "ai_tool": [
         [
           {
-            "node": "Calender Agent",
+            "node": "Calendar Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -298,7 +298,7 @@
       "ai_tool": [
         [
           {
-            "node": "Calender Agent",
+            "node": "Calendar Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -309,7 +309,7 @@
       "ai_tool": [
         [
           {
-            "node": "Calender Agent",
+            "node": "Calendar Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -320,7 +320,7 @@
       "ai_tool": [
         [
           {
-            "node": "Calender Agent",
+            "node": "Calendar Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -331,7 +331,7 @@
       "ai_tool": [
         [
           {
-            "node": "Calender Agent",
+            "node": "Calendar Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -342,7 +342,7 @@
       "ai_tool": [
         [
           {
-            "node": "Calender Agent",
+            "node": "Calendar Agent",
             "type": "ai_tool",
             "index": 0
           }
