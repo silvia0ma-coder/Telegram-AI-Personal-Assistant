@@ -1,0 +1,1010 @@
+{
+  "name": "Telegram AI Personal Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "212b11c7-209c-47c8-8b7e-2b283154c4ba",
+      "name": "Telegram Trigger1",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8d4b916c-d38a-455f-a10a-0c8e440bfe67",
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "87674139-3943-4e5a-a656-df656a7f6271",
+      "name": "Switch1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        896,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e4145e69-b00c-43dc-bf65-7647a862fbe4",
+              "name": "text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "telegram-chat-id",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "telegram-message-id",
+              "name": "message_id",
+              "value": "={{ $json.message.message_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4457d0c5-1d41-4cd4-b7c8-12cad5d2ebd0",
+      "name": "Edit Fields1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=# Role\nYou are the user, a professional AI personal assistant with access to multiple specialist tools. Your job is to understand the user's goal, decide which tools are needed, use them in the right order, and return a clear, useful result.\n\n# Core Behavior\n- Respond concisely, professionally, and in plain English.\n- Understand natural-language requests. The user does not need to name a tool or workflow.\n- Act as an agent: when a request requires multiple sources or steps, use the necessary tools in sequence and combine the results into one answer.\n- Do not ask the user to manually choose which tool to use when you can determine it yourself.\n- Do not stop after the first useful result if additional tool calls are needed to complete the request.\n- If a request is genuinely ambiguous and the missing information is necessary to act safely, ask one focused clarification question.\n- Never invent information when a tool can verify it.\n\n# Date and Time\nCurrent date/time: {{ $now }}\nUse this when interpreting relative dates such as today, tomorrow, this week, next week, or recently.\n\n# Attention / Daily Briefing\nWhen the user asks \"What needs my attention?\", \"What should I focus on today?\", \"What's important today?\", \"Give me my daily briefing.\", or \"What have I missed?\", review the relevant available tools rather than guessing.\nPrioritize:\n1. Time-sensitive calendar items or meetings.\n2. Emails that appear urgent or require a response.\n3. Relevant contact follow-ups.\n4. Pending X/social tasks when relevant.\n5. Important research or outstanding requests.\nReturn a short prioritized list with the most important items first. Clearly distinguish facts retrieved from tools from your recommendations.\n\n# Multi-Step Agentic Tasks\nFor requests that require several steps, plan internally and execute the required tools in the correct order.\nExamples:\n- \"Prepare me for my meeting with John\" → check the calendar, then use contacts, email, or research as needed, then summarize.\n- \"Follow up with Sarah about the proposal\" → find Sarah, locate relevant email context, prepare the follow-up, then ask for approval before sending.\n- \"What should I focus on today?\" → review relevant calendar, email, and contact information and synthesize priorities.\n- \"Create an X post from the research we did\" → use research context, create the post, and follow the X draft/publish rules.\n\n# Human Approval\n- Consequential actions must have approval in the current execution.\n- For calendar create/update/delete, contact save, and X publish, call Telegram Approval Gate first with the exact action, then wait for approval. If declined or timed out, do not perform the action.\n- For a NEW email, first prepare the exact recipient, subject, and body. Call Telegram Approval Gate with those exact details. If approved in this execution, call the Email Management sub-workflow with APPROVED_TO_SEND and the exact approved recipient, subject, and body. If declined or timed out, do not send.\n- For an EMAIL REPLY, retrieve the correct message first, prepare the exact reply and target message ID, then use Telegram Approval Gate before sending. Only after approval, call the Email Management sub-workflow with APPROVED_TO_REPLY and the exact approved details.\n- Never treat an earlier \"yes\" as approval for a new action. Approval applies only to the exact proposed action.\n- Reading, searching, analyzing, and preparing drafts do not require approval.\n- Never claim an action succeeded unless the relevant tool confirms it.\n\n# Gmail_Tool\nUse this tool every time you need to do something with email.\n- Search, read, summarize, and prepare drafts without confirmation.\n- Before sending or replying, use the approval rules above.\n- When sending email, sign every email with \"the user\".\n- Never use empty placeholders for names.\n- Ensure emails have a clear subject and well-formatted body.\n\n# Calendar_Tool\nUse this tool every time you need to do something with the calendar.\n- Check schedules, find events, create events, update events, or delete events.\n- Check availability before creating or moving an event when appropriate.\n- Before creating, updating, or deleting an event, use Telegram Approval Gate and then execute only the approved action.\n- Use the user's local date/time context when interpreting relative dates.\n\n# search_agent\nUse this tool for research using the available sources: Wikipedia and Hacker News.\n- Pass the complete research question or topic.\n- Summarize useful findings instead of dumping search results.\n- When a recommendation is requested, compare relevant findings and provide a reasoned recommendation.\n- Do not claim live web search or official-source verification unless an available tool actually provides it.\n\n# x_posts\nUse this tool for X/Twitter tasks.\n- If the user asks for a draft, create the post and save it as a draft in the Google Sheet.\n- This sub-workflow only saves drafts to Google Sheets; it does not publish to X.\n- If the user asks to publish, explain that publishing is not configured yet and offer to save a draft.\n- Never claim an X post was published unless a connected publishing tool confirms it.\n\n# contact_agent\nUse this tool for contact tasks.\n- Use action \"get\" with a name, email, or phone to look up a contact.\n- Use action \"add\" with name, email, and phone to save a contact.\n- Before saving a new contact, use Telegram Approval Gate and then save only the approved details.\n- Do not invent missing contact details.\n\n# Voice\nWhen the user sends a voice message, respond only to the current request/execution. Never replay, summarize, or synthesize previous voice messages unless the user explicitly asks.\nKeep voice replies concise and natural to listen to; avoid long lists unless the user asks for detail.\n\n# Response Quality\n- Prefer one clear answer over disconnected tool outputs.\n- When multiple tools are used, synthesize their results and explain the most useful conclusion.\n- When recommending next steps, make them practical and specific.\n- Keep routine answers concise; provide more detail only when needed.\n- Be professional, calm, and plain-English."
+        }
+      },
+      "id": "ac03a0ce-b73b-4cfd-a3fa-e77d436e517f",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1952,
+        336
+      ],
+      "retryOnFail": false,
+      "maxTries": 2,
+      "waitBetweenTries": 1500,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Restore Telegram Message').item.json.message.chat.id }}",
+        "contextWindowLength": 4
+      },
+      "id": "c7c509c6-5841-49ff-8095-3f2011c0a15a",
+      "name": "Window Buffer Memory1",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1712,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "name": "search_agent",
+        "description": "Use for research through the available Wikipedia and Hacker News sources. Pass the complete research question or topic; summarize findings and distinguish sourced facts from recommendations. Live web search is not configured.",
+        "workflowId": {
+          "__rl": true,
+          "value": "RESELECT_SUBWORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Select the matching imported sub-workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', `The research question or topic to look up`, 'string') }}"
+          },
+          "matchingColumns": [
+            "query"
+          ],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "query",
+              "id": "query",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "8f62263b-bd10-44e2-bb34-1f31d2b4cea3",
+      "name": "search_agent1",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "name": "Calendar_Tool",
+        "description": "Use this tool every time you need to do something in the calendar. Pass the full request in query.",
+        "workflowId": {
+          "__rl": true,
+          "value": "RESELECT_SUBWORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Select the matching imported sub-workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', `The calendar request in natural language, including dates and times`, 'string') }}"
+          },
+          "matchingColumns": [
+            "query"
+          ],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "query",
+              "id": "query",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "53945b4d-0d3e-4428-9d4e-5ad3ec3dd3ff",
+      "name": "Calendar_Tool1",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        1968,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "name": "Gmail_Tool",
+        "description": "Use for email search, reading, summaries, and drafts. For new outbound email, prepare exact recipient/subject/body, obtain Telegram Approval Gate approval, then call with APPROVED_TO_SEND and the exact approved details. For replies, use APPROVED_TO_REPLY only after approval of the exact message and reply content.",
+        "workflowId": {
+          "__rl": true,
+          "value": "RESELECT_SUBWORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Select the matching imported sub-workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', `The complete email request in natural language. For a new email that has already been approved, begin with APPROVED_TO_SEND. For an approved reply, begin with APPROVED_TO_REPLY and include the exact message/thread details.`, 'string') }}"
+          },
+          "matchingColumns": [
+            "query"
+          ],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "query",
+              "id": "query",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "3c6ea397-8a30-44cc-9b2f-d5061fbad481",
+      "name": "Gmail_Tool1",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "name": "contact_agent",
+        "description": "Use this tool to look up a contact or save a new one. Use action 'get' with the name to look up a contact, and action 'add' with name, email and phone to save a contact.",
+        "workflowId": {
+          "__rl": true,
+          "value": "RESELECT_SUBWORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Select the matching imported sub-workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('action', `Either 'get' to look up a contact or 'add' to save a new contact`, 'string') }}",
+            "email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('email', `The contact's email address (only for add)`, 'string') }}",
+            "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('name', `The contact's name`, 'string') }}",
+            "phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('phone', `The contact's phone number (only for add)`, 'string') }}"
+          },
+          "matchingColumns": [
+            "action"
+          ],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "action",
+              "id": "action",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "name",
+              "id": "name",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "email",
+              "id": "email",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "phone",
+              "id": "phone",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "f7feb01e-b8b1-4728-b842-3e01f0822acc",
+      "name": "contact_agent1",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "b69abfe2-b35c-4bbb-bf11-2c932617097c",
+              "leftValue": "={{ $('Telegram Trigger1').item.json.message.voice.file_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3a7c0115-196a-40a2-b266-3b6944c726a9",
+      "name": "Is Voice Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "={{ $('Switch1').item.json.message.chat.id }}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "id": "de9fd5cf-500c-46e7-b302-8349dbe351ff",
+      "name": "Send ElevenLabs Voice Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3120,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Switch1').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b67360b7-6bf3-4f53-be34-642d0e3b7116",
+      "name": "Telegram4",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2896,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "58ae358d-0fd8-41e2-9121-baf7e8cbccdd",
+      "name": "Telegram3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        528
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "name": "x_posts",
+        "description": "Create an X post draft and save it to the Google Sheet. This sub-workflow does not publish posts to X.",
+        "workflowId": {
+          "__rl": true,
+          "value": "RESELECT_SUBWORKFLOW_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Select the matching imported sub-workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', `The topic or information for the X post`, 'string') }}"
+          },
+          "matchingColumns": [
+            "query"
+          ],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "query",
+              "id": "query",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "ab60fa7f-49df-4f9b-9d31-4de811a945e0",
+      "name": "x_posts1",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Sorry, I can only handle text and voice messages for now.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b91704d4-0a9a-40fd-8859-d759a03f07ce",
+      "name": "Telegram Unsupported Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Switch1').item.json.message.chat.id }}",
+        "text": "Sorry, something went wrong while handling that. Please try again.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "4fd44230-85d0-41ba-ae80-e0f92ae85f75",
+      "name": "Telegram Error Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2672,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "RESELECT_OR_CREATE_DATATABLE_AFTER_IMPORT"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ String($('Telegram Trigger1').item.json.message.chat.id) }}"
+            },
+            {
+              "keyName": "status",
+              "keyValue": "active"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "3a9c7208-a18e-4f9a-b3b2-f2d8affb8b1f",
+      "name": "Check Telegram Authorization",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        624
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.chat_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a438fc62-f65f-46e8-88ee-914c0cc0087d",
+      "name": "Authorized User?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger1').item.json.message.chat.id }}",
+        "text": "This assistant is private. You are not authorized to use it.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b3823816-358a-4f8e-ad81-f2f86153748e",
+      "name": "Unauthorized Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Telegram Trigger1').item.json.message.chat.id }}",
+        "message": "={{ $fromAI('approval_message', 'Describe the exact action requiring approval.', 'string') }}",
+        "approvalOptions": {
+          "values": {
+            "approveLabel": "Approve"
+          }
+        },
+        "chatApproval": true,
+        "approverIds": "={{ $('Telegram Trigger1').item.json.message.from.id }}",
+        "postDecisionBehavior": "removeButtons",
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 30,
+              "resumeUnit": "minutes"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "cea56781-61f1-4aa9-90ea-cb32800d4144",
+      "name": "Telegram Approval Gate",
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        2480,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "restore-message-001",
+              "name": "message",
+              "value": "={{ $('Telegram Trigger1').item.json.message }}",
+              "type": "object"
+            },
+            {
+              "id": "restore-update-001",
+              "name": "update_id",
+              "value": "={{ $('Telegram Trigger1').item.json.update_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e4aa9ea5-a224-466d-895b-70f1f608196d",
+      "name": "Restore Telegram Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "RESELECT_OR_CREATE_DATATABLE_AFTER_IMPORT",
+          "mode": "list",
+          "cachedResultName": "Select your own Data Table after import"
+        }
+      },
+      "type": "n8n-nodes-base.evaluationTrigger",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cd3c6f25-416c-4911-bb00-16cf198e1331",
+      "name": "When fetching a dataset row",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "voice": {
+          "__rl": true,
+          "mode": "id",
+          "value": "cjVigY5qzO86Huf0OWal",
+          "cachedResultName": "Default ElevenLabs voice"
+        },
+        "text": "={{ $json.output }}",
+        "additionalOptions": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "eleven_turbo_v2_5",
+            "cachedResultName": "Eleven Turbo v2.5"
+          },
+          "outputFormat": "mp3_44100_128",
+          "languageCode": "en"
+        },
+        "requestOptions": {}
+      },
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [
+        2896,
+        624
+      ],
+      "id": "65e9d910-f5e4-4eb0-aff5-976c96c260a6",
+      "name": "ElevenLabs Text to Speech"
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "operation": "speechToText",
+        "additionalOptions": {
+          "languageCode": "en"
+        },
+        "requestOptions": {}
+      },
+      "id": "86ed0355-057b-4912-9fc6-6da2bcb66729",
+      "name": "ElevenLabs Speech to Text",
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "maxOutputTokens": 2048,
+          "temperature": 0.2
+        }
+      },
+      "id": "1ac34f32-5885-4371-bcbe-c15368ef8fd8",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1584,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Unsupported Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Is Voice Message?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Error Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_agent1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar_Tool1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail_Tool1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contact_agent1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Voice Message?": {
+      "main": [
+        [
+          {
+            "node": "ElevenLabs Text to Speech",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "x_posts1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Check Telegram Authorization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Telegram Authorization": {
+      "main": [
+        [
+          {
+            "node": "Authorized User?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authorized User?": {
+      "main": [
+        [
+          {
+            "node": "Restore Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unauthorized Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Approval Gate": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ElevenLabs Text to Speech": {
+      "main": [
+        [
+          {
+            "node": "Send ElevenLabs Voice Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram3": {
+      "main": [
+        [
+          {
+            "node": "ElevenLabs Speech to Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ElevenLabs Speech to Text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "nodeGroups": []
+}
