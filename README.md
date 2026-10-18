@@ -66,6 +66,9 @@ Telegram-AI-Personal-Assistant/
 ├── README.md
 ├── SECURITY.md
 ├── .gitignore
+├── docs/
+│   ├── setup.md
+│   └── architecture.md
 ├── Telegram-AI-Personal-Assistant-Json.json      (main workflow)
 ├── Email-Management-Sub-Workflow-Json.json
 ├── Calendar_Management_Agent_Json.json
@@ -78,10 +81,11 @@ Telegram-AI-Personal-Assistant/
 
 1. Clone or download this repository.
 2. Read [Security Policy](SECURITY.md) before sharing or importing workflow files.
-3. Import the five sub-workflows into your n8n instance.
-4. Import the main workflow.
-5. Configure credentials, resources (Google Sheets IDs, data table, `YOUR_NAME` email signature), and sub-workflow references.
-6. Test each workflow with non-production data before activating it.
+3. Follow the instructions in the [Setup Guide](docs/setup.md); see [Architecture](docs/architecture.md) for how the workflows fit together.
+4. Import the five sub-workflows into your n8n instance.
+5. Import the main workflow.
+6. Configure credentials, resources (Google Sheets IDs, data table, `YOUR_NAME` email signature), and sub-workflow references.
+7. Test each workflow with non-production data before activating it.
 
 ## Important Notes
 
