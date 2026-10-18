@@ -668,25 +668,6 @@
     },
     {
       "parameters": {
-        "dataTableId": {
-          "__rl": true,
-          "value": "RESELECT_OR_CREATE_DATATABLE_AFTER_IMPORT",
-          "mode": "list",
-          "cachedResultName": "Select your own Data Table after import"
-        }
-      },
-      "type": "n8n-nodes-base.evaluationTrigger",
-      "typeVersion": 4.7,
-      "position": [
-        0,
-        0
-      ],
-      "id": "cd3c6f25-416c-4911-bb00-16cf198e1331",
-      "name": "When fetching a dataset row",
-      "disabled": true
-    },
-    {
-      "parameters": {
         "resource": "speech",
         "voice": {
           "__rl": true,

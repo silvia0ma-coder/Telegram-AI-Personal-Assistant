@@ -2,163 +2,135 @@
 
 ## 1. Overview
 
-The Telegram AI Personal Assistant uses a modular workflow architecture built in n8n.
+The Telegram AI Personal Assistant is built from six n8n workflows:
 
-The system consists of:
+- One **main workflow** (`telegram-ai-personal-assistant.json`) that receives Telegram messages, checks who is allowed to use the bot, handles text and voice, and runs a single AI agent.
+- Five **sub-workflows** that the agent calls as tools: Email, Calendar, Research, Contacts, and X Posts. Each one has its own AI agent (or, for Contacts, plain nodes) and its own tools.
 
-- One main workflow: **Telegram AI Personal Assistant**.
-- Five specialized sub-workflows: Email, Calendar, Research, Contacts, and X Posts.
+All AI agents use Google Gemini (`models/gemini-3.5-flash-lite`, temperature 0.2, up to 2048 output tokens).
 
-The main workflow coordinates user requests. Each sub-workflow is responsible for a particular category of task.
-
-This structure separates the user interface and request-routing logic from the individual automation tasks.
-
-## 2. High-Level Architecture
+## 2. Main workflow flow
 
 ```mermaid
 flowchart TD
-    User[User]
-    Telegram[Telegram Interface]
-    Main[Main: Telegram AI Personal Assistant]
+    User([Telegram user]) --> Trigger[Telegram Trigger]
+    Trigger --> Auth["Check Telegram Authorization<br/>(n8n Data Table)"]
+    Auth --> IsAuth{Authorized?}
+    IsAuth -- no --> Unauth[Unauthorized reply]
+    IsAuth -- yes --> Restore[Restore Telegram Message]
+    Restore --> Route{Message type}
 
-    Email[Email Management]
-    Calendar[Calendar Management]
-    Research[Research Agent]
-    Contacts[Contact Agent]
-    XPosts[X Posts Agent]
+    Route -- text --> Fields[Edit Fields]
+    Route -- voice --> Download[Download voice file]
+    Route -- other --> Unsupported[Unsupported-type reply]
+    Download --> STT[ElevenLabs Speech to Text]
 
-    User <--> Telegram
-    Telegram <--> Main
+    Fields --> Agent[AI Agent]
+    STT --> Agent
 
-    Main <--> Email
-    Main <--> Calendar
-    Main <--> Research
-    Main <--> Contacts
-    Main <--> XPosts
+    Agent -- error --> ErrorReply[Error reply]
+    Agent --> IsVoice{Voice message?}
+    IsVoice -- yes --> TTS[ElevenLabs Text to Speech]
+    TTS --> VoiceReply[Send voice reply]
+    IsVoice -- no --> TextReply[Send text reply]
 ```
 
-This diagram represents the intended logical design. The actual execution paths, node connections, and data mappings must be confirmed against the current n8n workflow exports.
+Key points:
 
-## 3. Main Workflow
+1. **Authorization first.** Every message is checked against a Data Table of `chat_id` values with `status = active`. Anyone else gets a refusal and nothing else runs.
+2. **Text, voice, or unsupported.** Text goes straight to the agent. Voice messages are downloaded and transcribed with ElevenLabs first. Anything else (photos, stickers, and so on) gets a short "only text and voice" reply.
+3. **One agent, many tools.** The AI Agent has a 4-message window memory keyed by Telegram chat ID, the five sub-workflow tools, and the Telegram Approval Gate.
+4. **Reply in the same format.** Voice requests are answered with a voice message; text requests with text.
+5. **Errors.** If the agent fails, the user receives "Sorry, something went wrong while handling that. Please try again."
 
-### Telegram AI Personal Assistant
+## 3. Agent tools
 
-**Primary responsibility:** Receive user requests, coordinate task execution, and return responses.
+```mermaid
+flowchart LR
+    Agent[AI Agent]
+    Agent <--> Email[Gmail_Tool<br/>Email Management]
+    Agent <--> Calendar[Calendar_Tool<br/>Calendar Management]
+    Agent <--> Research[search_agent<br/>Research Agent]
+    Agent <--> Contacts[contact_agent<br/>Contact Agent]
+    Agent <--> XPosts[x_posts<br/>X Posts Agent]
+    Agent <--> Gate[Telegram Approval Gate]
+```
 
-The main workflow serves as the entry point for the assistant. It receives requests through the configured Telegram integration and processes them using the AI components and routing logic present in the workflow.
+| Tool | Sub-workflow | What it does |
+|---|---|---|
+| `Gmail_Tool` | Email Management | Searches and reads Gmail, summarizes and prioritizes emails, saves drafts, sends emails and replies, manages read state and labels. Ten Gmail operations in total. |
+| `Calendar_Tool` | Calendar Management | Gets events, checks availability, creates events (with or without attendees), updates and deletes events in Google Calendar. |
+| `search_agent` | Research Agent | Answers research questions using Wikipedia and Hacker News only. It does not do live web search. |
+| `contact_agent` | Contact Agent | `get` looks up a contact by name, email, or phone in a Google Sheet; `add` saves a contact (matched on phone number). |
+| `x_posts` | X Posts Agent | Writes X (Twitter) post drafts and saves them to a Google Sheet. It never publishes to X. |
+| Telegram Approval Gate | (main workflow) | Sends the user an **Approve** button in Telegram and waits up to 30 minutes for the decision. |
 
-The intended process is:
+## 4. Human approval
 
-1. A user sends a request through Telegram.
-2. The main workflow receives and interprets the request.
-3. The workflow routes the request to the appropriate sub-workflow.
-4. The selected sub-workflow performs its configured task.
-5. The result is returned to the main workflow.
-6. The assistant responds through Telegram.
+Reading, searching, summarizing, and drafting never need approval. These actions do:
 
-Voice requests depend on the voice-message handling and transcription components present in the current version of the workflow.
+- Sending a new email or a reply
+- Creating, updating, or deleting a calendar event
+- Saving a new contact
+- Publishing an X post (not currently possible; the workflow only saves drafts)
 
-## 4. Sub-Workflows
+The agent is instructed to call the Approval Gate with the exact action, wait for the user, and only then call the sub-workflow:
 
-### Email Management Sub-Workflow
+```mermaid
+sequenceDiagram
+    participant U as User (Telegram)
+    participant A as AI Agent
+    participant G as Approval Gate
+    participant S as Email sub-workflow
 
-**Responsibility:** Handle email-related requests.
+    U->>A: "Email Sam the report"
+    A->>A: Prepare exact recipient, subject, body
+    A->>G: Ask for approval of that exact email
+    G->>U: Message with Approve button
+    U-->>G: Approve (or decline / 30 min timeout)
+    G-->>A: Decision
+    A->>S: APPROVED_TO_SEND + exact details (only if approved)
+    S-->>A: Result
+    A->>U: Confirmation based on the tool result
+```
 
-This workflow contains the email operations configured in its nodes and uses the associated email credentials.
+The Email sub-workflow adds a second layer: its agent only calls `sendEmail` or `sendReply` when the request begins with `APPROVED_TO_SEND` or `APPROVED_TO_REPLY`.
 
-The precise actions supported should be confirmed from the current export and tested before live use.
+> **Limitation:** both layers are enforced through AI instructions, not through workflow logic. A prompt-injected email could try to talk the model into sending. If you need a stricter guarantee, add a workflow-level check (for example an IF node) that verifies the approval result before the send operation runs.
 
-### Calendar Management Sub-Workflow
+## 5. Sub-workflow design
 
-**Responsibility:** Handle calendar-related requests.
+| Sub-workflow | Trigger input | Internals |
+|---|---|---|
+| Email Management | `query` text | AI agent with 10 Gmail tools |
+| Calendar Management | `query` text | AI agent with 6 Google Calendar tools |
+| Research Agent | `query` text | AI agent with Wikipedia and Hacker News tools. No error output is wired. |
+| Contact Agent | `action`, `name`, `email`, `phone` | No AI. An IF node routes `add` to an append-or-update on the sheet; anything else reads the sheet and a Code node filters the matching rows. |
+| X Posts Agent | `query` text | AI agent with a `savePost` Google Sheets tool; success and error response nodes |
 
-This workflow uses the configured calendar integration to carry out the operations implemented in its nodes.
+Each sub-workflow starts with an *Execute Workflow Trigger*, so it can only be called from another workflow.
 
-Calendar tests should verify the target calendar, timezone, date, start time, and end time.
+## 6. Error handling
 
-### Research Agent Sub-Workflow
+- The main AI agent, and the Email, Calendar, and X Posts agents, have an error output that produces a plain-language failure message.
+- The calendar agent is also instructed never to report success unless the tool response confirms it.
+- The Research agent has no error output, and the Contact Agent has no explicit error handling beyond a "no matching contact" result.
+- There is no shared error-handler workflow in this repository.
 
-**Responsibility:** Support research and information-gathering requests.
+## 7. Security model
 
-This workflow uses the sources and integrations configured in the current export. Sources used in earlier versions included Wikipedia and Hacker News, but the current JSON should be treated as the source of truth for the active configuration.
+- A Data Table allow-list restricts the bot to approved Telegram chats.
+- The approval gate only accepts a decision from the person who sent the request (`approverIds` is the sender's Telegram ID).
+- Credentials live in n8n's credential store, not in the exported JSON.
+- All exports are sanitized and set to inactive. See [SECURITY.md](../SECURITY.md).
 
-### Contact Agent Sub-Workflow
+## 8. Why this design?
 
-**Responsibility:** Handle contact-related operations.
+- **Separation of responsibilities:** each sub-workflow does one kind of task and can be tested on its own.
+- **Maintainability:** the Telegram interface, the routing agent, and the task logic can change independently.
+- **Reusability:** sub-workflows can be called from other workflows that send compatible inputs.
+- **Troubleshooting:** n8n shows the main execution and each sub-workflow execution separately.
 
-The project uses Google Sheets for configured contact data. The target spreadsheet, worksheet, column structure, and supported operations must be checked in the workflow.
+## 9. Source of truth
 
-### X Posts Agent Sub-Workflow
-
-**Responsibility:** Handle X-post-related operations.
-
-The project uses Google Sheets for configured X-post data. The exact workflow behavior must be confirmed before assuming that it only drafts content or performs live publishing.
-
-## 5. Request Routing
-
-The main workflow acts as the coordinator between Telegram and the task-specific workflows.
-
-The intended routing relationship is:
-
-| Request category | Destination |
-|---|---|
-| Email | Email Management Sub-Workflow |
-| Calendar or event | Calendar Management Sub-Workflow |
-| Research or information gathering | Research Agent Sub-Workflow |
-| Contact-related task | Contact Agent Sub-Workflow |
-| X-post-related task | X Posts Agent Sub-Workflow |
-
-Routing depends on the main workflow's actual AI instructions, conditions, and sub-workflow call nodes.
-
-## 6. Data Flow
-
-For the architecture to work correctly, the main workflow and each sub-workflow must agree on the input and output data.
-
-For every sub-workflow call, verify:
-
-- The main workflow passes the required input fields.
-- Field names and data types match what the sub-workflow expects.
-- The sub-workflow trigger is compatible with the way it is invoked.
-- The sub-workflow returns the data expected by the main workflow.
-- Errors can be identified in the n8n execution history.
-
-When importing into a different n8n instance, do not assume that workflow IDs, credentials, or resource references remain valid.
-
-## 7. Error Handling
-
-The project has included shared error-handling logic in its workflow design.
-
-Review the current exports to verify where the error handler is connected and which errors it processes.
-
-A useful error-handling approach should:
-
-- Make failed executions easier to diagnose.
-- Preserve enough technical context to troubleshoot the failure.
-- Avoid exposing API keys, tokens, private messages, or other sensitive information.
-- Provide an appropriate user-facing response when an operation cannot be completed.
-
-Test error handling using a controlled failure that does not affect production data.
-
-## 8. Why This Architecture?
-
-The modular design provides several benefits:
-
-- **Separation of responsibilities:** Each sub-workflow focuses on one task category.
-- **Maintainability:** A task can be updated and tested independently.
-- **Troubleshooting:** Developers can inspect executions for the main workflow and the relevant sub-workflow.
-- **Reusability:** Sub-workflows may be reused in other workflows when their inputs and triggers are compatible.
-- **Clarity:** The Telegram-facing interface remains separate from the implementation of individual tasks.
-
-## 9. Configuration and Deployment
-
-The repository documents the design and stores sanitized workflow exports.
-
-The running n8n instance remains responsible for executing the automations. Importing files into GitHub does not deploy them to n8n.
-
-Before deployment, verify credentials, resource selections, sub-workflow references, input/output mappings, and error-handling behavior.
-
-## 10. Source of Truth
-
-This document describes the intended architecture. The actual node-level behavior is defined by the current n8n workflow exports.
-
-If the documentation and workflow JSON disagree, inspect the current workflow and update this document to reflect the implemented behavior.
+The workflow JSON files in [`workflows/`](../workflows/) are the source of truth. If this document and a workflow disagree, trust the JSON and update this document.
