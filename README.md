@@ -102,3 +102,7 @@ See [SECURITY.md](SECURITY.md) for additional guidance.
 ## Project Goal
 
 The goal of this project is to demonstrate how a conversational AI assistant can coordinate multiple automation tasks through a modular n8n architecture, making everyday digital operations easier to manage from a single interface.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
