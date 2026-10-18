@@ -66,29 +66,22 @@ Telegram-AI-Personal-Assistant/
 ├── README.md
 ├── SECURITY.md
 ├── .gitignore
-├── docs/
-│   ├── setup.md
-│   └── architecture.md
-└── workflows/
-    ├── Telegram-AI-Personal-Assistant-SANITIZED.json
-    ├── Email-Management-Sub-Workflow-SANITIZED.json
-    ├── Calendar-Management-SANITIZED.json
-    ├── Research-Agent-SANITIZED.json
-    ├── Contacts-Agent-SANITIZED.json
-    └── X-Posts-Agent-SANITIZED.json
+├── Telegram-AI-Personal-Assistant-Json.json      (main workflow)
+├── Email-Management-Sub-Workflow-Json.json
+├── Calendar_Management_Agent_Json.json
+├── Research_Agent_Json.json
+├── Contact_Agent_Sub_workflow_Json.json
+└── X_Posts_Agent_Sub_Workflow_Json.json
 ```
-
-The filenames above are suggested names. Use the actual filenames of the sanitized workflow exports you add to the repository.
 
 ## Getting Started
 
 1. Clone or download this repository.
 2. Read [Security Policy](SECURITY.md) before sharing or importing workflow files.
-3. Follow the instructions in [Setup Guide](docs/setup.md).
-4. Import the five sub-workflows into your n8n instance.
-5. Import the main workflow.
-6. Configure credentials, resources, and sub-workflow references.
-7. Test each workflow with non-production data before activating it.
+3. Import the five sub-workflows into your n8n instance.
+4. Import the main workflow.
+5. Configure credentials, resources (Google Sheets IDs, data table, `YOUR_NAME` email signature), and sub-workflow references.
+6. Test each workflow with non-production data before activating it.
 
 ## Important Notes
 
