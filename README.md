@@ -4,6 +4,12 @@ An AI-powered personal assistant built with **n8n, Telegram, and AI integrations
 
 The system uses a main workflow to coordinate user requests and five sub-workflows to organize different responsibilities.
 
+## Demo
+
+[![Watch the demo](https://img.youtube.com/vi/TmK4vPooAJI/hqdefault.jpg)](https://youtu.be/TmK4vPooAJI)
+
+Click the image above to watch the demo on YouTube.
+
 ## Project Overview
 
 The Telegram AI Personal Assistant is designed to simplify everyday tasks by connecting a conversational interface to automation workflows.
