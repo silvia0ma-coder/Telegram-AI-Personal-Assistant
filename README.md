@@ -41,6 +41,26 @@ The project consists of six n8n workflows:
 | Contact Agent Sub-Workflow | Contact-related operations |
 | X Posts Agent Sub-Workflow | X-post-related operations |
 
+## Screenshots
+
+### Main workflow
+
+The Telegram trigger, authorization check, text/voice routing, the AI agent with its five sub-workflow tools, and the approval gate.
+
+![Main workflow canvas in n8n](docs/images/main-workflow.jpg)
+
+### Email Management sub-workflow
+
+One email agent with ten Gmail tools (read, draft, send, reply, label, and mark read or unread).
+
+![Email Management sub-workflow canvas in n8n](docs/images/email-management-sub-workflow.jpg)
+
+### Calendar Management sub-workflow
+
+One calendar agent with six Google Calendar tools (get, create, update, delete events, and check availability).
+
+![Calendar Management sub-workflow canvas in n8n](docs/images/calendar-management-sub-workflow.jpg)
+
 ## Architecture
 
 The general request flow is:
@@ -73,7 +93,11 @@ Telegram-AI-Personal-Assistant/
 ├── .gitignore
 ├── docs/
 │   ├── setup.md
-│   └── architecture.md
+│   ├── architecture.md
+│   └── images/
+│       ├── main-workflow.jpg
+│       ├── email-management-sub-workflow.jpg
+│       └── calendar-management-sub-workflow.jpg
 └── workflows/
     ├── telegram-ai-personal-assistant.json      (main workflow)
     ├── email-management-sub-workflow.json
